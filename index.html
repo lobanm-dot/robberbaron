@@ -1,0 +1,489 @@
+from PIL import Image
+import base64, io, re, os, textwrap, json
+
+# Paths
+src = "/mnt/data/Pasted text(20260825-140756).txt"
+visual_src = "/mnt/data/a_full_screen_colorful_educational_app_game_interf.png"
+terms_src = "/mnt/data/a_wide_infographic_educational_poster_style_image.png"
+out = "/mnt/data/industrialist_files_academic.html"
+
+# Pull the original Bitmoji/cartoon portraits from the prior game so this version keeps the same feel.
+original = open(src, "r", encoding="utf-8").read()
+m = re.search(r'const portraitImages\s*=\s*(\{.*?\});\s*\n\s*const people', original, re.S)
+portrait_object = m.group(1) if m else "{}"
+
+def img_to_uri(img):
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+# Crop the cartoon evidence visuals generated for the Academic version.
+vis = Image.open(visual_src)
+evidence_crops = {
+    "oil": (38, 315, 302, 470),
+    "plant": (322, 315, 590, 470),
+    "train": (602, 315, 875, 470),
+    "prices": (38, 625, 302, 775),
+    "giving": (322, 625, 590, 775),
+    "workers": (602, 625, 875, 775),
+}
+ev = {k: img_to_uri(vis.crop(v)) for k,v in evidence_crops.items()}
+
+# Crop only the vocabulary infographic portion (exclude the code mockup at the bottom).
+terms = Image.open(terms_src)
+terms_sheet = img_to_uri(terms.crop((0, 0, terms.width, 730)))
+
+html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Industrialist Files — Academic Version</title>
+<style>
+:root {{
+  --bg:#0e1218; --panel:#171d26; --panel2:#202834; --ink:#f4efe5; --muted:#aab3c0;
+  --gold:#d6aa4a; --red:#b95252; --blue:#5083ad; --green:#5e9169; --line:#313b49;
+  --paper:#efe5ce; --paperink:#29241c;
+}}
+*{{box-sizing:border-box}}
+body{{margin:0;color:var(--ink);font-family:Arial,Helvetica,sans-serif;background:
+radial-gradient(circle at 15% 0%,rgba(214,170,74,.12),transparent 25%),linear-gradient(#0c1015,#131923);min-height:100vh}}
+button,input{{font:inherit}} button{{cursor:pointer}}
+.shell{{max-width:1180px;margin:auto;padding:20px}}
+.topbar{{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:13px;margin-bottom:20px;flex-wrap:wrap}}
+.brand{{font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-size:.8rem}}
+.hud{{display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+.hudChip{{border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-weight:800;font-size:.75rem;color:var(--muted)}}
+.hudChip strong{{color:var(--gold)}}
+.helpBtn{{border:1px solid var(--gold);background:transparent;color:var(--gold);padding:7px 11px;border-radius:999px;font-weight:900}}
+.screen{{display:none}} .screen.active{{display:block}}
+.hero{{min-height:72vh;display:grid;place-items:center;text-align:center}}
+.heroInner{{max-width:900px}}
+.kicker{{font-size:.76rem;font-weight:900;letter-spacing:.2em;color:var(--gold);text-transform:uppercase}}
+h1{{font-family:Georgia,serif;font-size:clamp(2.7rem,7vw,5.4rem);line-height:.96;margin:15px 0}}
+h1 em{{display:block;color:var(--gold)}}
+.lede{{max-width:780px;margin:0 auto 22px;line-height:1.6;color:#d3dae3;font-size:1.02rem}}
+.primary,.secondary{{border-radius:10px;padding:12px 17px;font-weight:900;border:0}}
+.primary{{background:var(--gold);color:#18130b}} .secondary{{background:transparent;color:var(--ink);border:1px solid var(--line)}}
+.how{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:28px;text-align:left}}
+.how div{{border-top:1px solid var(--line);padding:12px 5px;color:var(--muted);font-size:.88rem;line-height:1.4}}
+.how strong{{display:block;color:var(--ink);margin-bottom:4px}}
+.caseHeader{{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:center;margin-bottom:18px}}
+.identity{{display:flex;gap:16px;align-items:center}}
+.portrait{{width:135px;height:135px;object-fit:cover;border-radius:16px;border:2px solid var(--gold);background:#eee}}
+.caseNum{{font-size:.72rem;font-weight:900;letter-spacing:.16em;color:var(--gold);text-transform:uppercase}}
+h2{{font-family:Georgia,serif;font-size:clamp(2rem,5vw,3.2rem);margin:4px 0}} .industry{{color:var(--muted)}}
+.question{{border-left:4px solid var(--gold);padding:14px 16px;background:rgba(214,170,74,.07);line-height:1.45;font-weight:700}}
+.stageBar{{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}}
+.stage{{font-size:.75rem;font-weight:900;border:1px solid var(--line);border-radius:10px;padding:9px 10px;color:var(--muted);text-align:center}}
+.stage.done{{border-color:var(--green);color:#b9d7bf}} .stage.now{{border-color:var(--gold);color:var(--gold);background:rgba(214,170,74,.08)}}
+.gameGrid{{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}}
+.panel{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}}
+.sectionLabel{{font-size:.72rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}}
+.evidenceGrid{{display:grid;gap:12px}}
+.envelope{{border:1px solid #8b7c61;border-radius:10px;background:var(--paper);color:var(--paperink);padding:14px;position:relative}}
+.envelope.locked{{background:#252b34;color:var(--ink);border-color:var(--line);min-height:150px;display:grid;align-content:center}}
+.envelope .stamp{{position:absolute;right:12px;top:10px;border:2px solid currentColor;padding:4px 7px;font-size:.62rem;font-weight:900;transform:rotate(3deg);opacity:.55}}
+.envelope h3{{font-family:Georgia,serif;margin:0 80px 9px 0;font-size:1.2rem}}
+.envelope p{{font-size:.96rem;line-height:1.48;margin:0 0 12px}}
+.evidenceVisual{{width:100%;height:175px;object-fit:cover;border-radius:8px;border:1px solid rgba(49,43,32,.25);margin:3px 0 11px;background:#ddd}}
+.termBox{{border-left:4px solid #9d782d;background:#f7edd6;padding:9px 10px;border-radius:6px;margin:10px 0;font-size:.86rem;line-height:1.35}}
+.termBox strong{{display:block;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;margin-bottom:2px}}
+.openBtn{{border:1px solid var(--gold);background:rgba(214,170,74,.09);color:var(--gold);padding:10px 13px;border-radius:8px;font-weight:900}}
+.classifyRow,.weightRow{{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}}
+.smallLabel{{font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-top:12px;color:#665b49}}
+.choiceBtn{{border:1px solid #8b7c61;background:transparent;color:#312a20;border-radius:999px;padding:8px 10px;font-size:.75rem;font-weight:900}}
+.choiceBtn.selected{{outline:3px solid rgba(0,0,0,.12)}}
+.choiceBtn.robber.selected{{background:#ead3cd}} .choiceBtn.mixed.selected{{background:#e8dfc1}} .choiceBtn.captain.selected{{background:#d7e6d5}}
+.weightBtn.selected{{background:#332d25;color:white}}
+.meterLabels{{display:flex;justify-content:space-between;font-size:.68rem;font-weight:900;text-transform:uppercase;color:var(--muted)}}
+.meter{{height:13px;border-radius:999px;background:linear-gradient(90deg,var(--red),#87765c,var(--blue));position:relative;margin:8px 0}}
+.needle{{position:absolute;width:4px;height:27px;background:white;top:-7px;transform:translateX(-2px);border-radius:2px;transition:.2s}}
+.scoreText{{color:var(--muted);font-size:.84rem;line-height:1.4}}
+.sliderBox{{margin-top:18px;padding:14px;background:var(--panel2);border-radius:12px;border:1px solid var(--line)}}
+.sliderBox input{{width:100%;accent-color:var(--gold)}} .sliderValue{{text-align:center;color:var(--gold);font-weight:900;margin-top:8px}}
+.firstLocked{{border:1px solid var(--gold);background:rgba(214,170,74,.08);padding:12px;border-radius:10px;margin-top:12px;font-size:.9rem}}
+.worksheet{{border:1px dashed var(--gold);border-radius:12px;padding:14px;margin-top:16px;background:rgba(214,170,74,.06);font-size:.9rem;line-height:1.45}}
+.worksheet p{{margin:6px 0}} .caseAction{{width:100%;margin-top:14px}} .movement{{font-weight:900;margin-top:9px}}
+.feedback{{margin-top:10px;min-height:22px;font-size:.85rem;color:var(--gold);font-weight:800}}
+.bottomNav{{display:flex;justify-content:space-between;gap:10px;margin-top:20px}}
+.summaryGrid{{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}}
+.summary{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}}
+.summary img{{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;margin-bottom:10px}}
+.summary h3{{font-family:Georgia,serif;margin:4px 0;font-size:1.35rem}}
+.badge{{display:inline-block;border:1px solid var(--gold);border-radius:999px;padding:5px 9px;color:var(--gold);font-size:.72rem;font-weight:900}}
+.finalCallout{{margin-top:18px;border:1px solid var(--gold);border-radius:14px;padding:18px;background:rgba(214,170,74,.07);line-height:1.5}}
+.caseClosed{{font-family:Georgia,serif;text-align:center;color:var(--gold);font-size:2rem;margin:10px 0 18px}}
+.trainingHero{{text-align:center;max-width:820px;margin:15px auto 20px}} .trainingHero h2{{margin:7px 0 8px}}
+.trainingLead{{color:var(--muted);line-height:1.55}}
+.trainingStatus{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:600px;margin:0 auto 18px}}
+.trainingStatus>div{{background:var(--panel);border:1px solid var(--line);border-radius:12px;text-align:center;padding:11px}}
+.statusBig{{display:block;color:var(--gold);font-weight:900;font-size:1.35rem}} .statusSmall{{font-size:.65rem;letter-spacing:.12em;color:var(--muted);font-weight:900}}
+.sortInstructions{{border-left:4px solid var(--gold);background:rgba(214,170,74,.07);padding:12px 14px;margin:14px 0 16px;line-height:1.45;font-size:.92rem}}
+.traitBank{{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:18px}}
+.traitCard{{background:var(--paper);color:var(--paperink);border:2px solid transparent;border-radius:10px;padding:12px 13px;text-align:left;min-height:68px;font-weight:800;line-height:1.3;position:relative}}
+.traitCard:hover{{border-color:#9c8964}} .traitCard.selected{{border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,170,74,.16)}} .traitCard.placed{{opacity:.35}}
+.traitCard .traitNum{{display:inline-block;font-size:.65rem;border:1px solid #8b7c61;border-radius:999px;padding:3px 6px;margin-right:5px}}
+.sortColumns{{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+.sortColumn{{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px;min-width:0}}
+.sortColumn h3{{font-family:Georgia,serif;font-size:1.35rem;margin:3px 0 5px}} .sortColumn>p{{font-size:.87rem;line-height:1.4;color:var(--muted);min-height:48px}}
+.sortIcon{{font-size:1.5rem}} .robberColumn{{border-top:4px solid var(--red)}} .captainColumn{{border-top:4px solid var(--blue)}}
+.dropChoice{{width:100%;min-height:44px;border-radius:9px;border:1px solid var(--line);font-weight:900;margin:4px 0 10px;color:var(--ink)}}
+.robberDrop{{background:rgba(185,82,82,.15);border-color:var(--red)}} .captainDrop{{background:rgba(80,131,173,.15);border-color:var(--blue)}}
+.sortedPile{{display:grid;gap:7px}} .sortedItem{{border-radius:8px;background:var(--panel2);padding:9px 10px;font-size:.84rem;line-height:1.35;display:flex;justify-content:space-between;gap:8px;align-items:center}}
+.sortedItem button{{border:0;background:transparent;color:var(--gold);font-weight:900;padding:4px}} .sortedItem.correct{{outline:2px solid var(--green)}} .sortedItem.wrong{{outline:2px solid var(--red)}}
+.trainingActions{{display:flex;justify-content:space-between;gap:10px;margin-top:16px}} .trainingFeedback{{text-align:center;min-height:28px;color:var(--gold);font-weight:900;margin:12px 0}}
+.unlockPanel{{border:2px solid var(--gold);border-radius:16px;background:rgba(214,170,74,.08);padding:18px;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;margin-top:16px}}
+.unlockPanel[hidden]{{display:none}} .unlockSeal{{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:#19130a;font-size:2rem;font-weight:900}}
+.unlockPanel h3{{font-family:Georgia,serif;font-size:1.7rem;margin:4px 0}} .unlockPanel p{{color:var(--muted);line-height:1.45;margin:0 0 12px}}
+.modal{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:20;padding:22px;overflow:auto}}
+.modal.open{{display:block}} .modalCard{{max-width:1200px;margin:auto;background:#10161f;border:1px solid var(--line);border-radius:16px;padding:14px}}
+.modalTop{{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}} .modalTop h3{{margin:0;font-family:Georgia,serif;font-size:1.5rem}}
+.modal img{{width:100%;display:block;border-radius:10px}} .closeBtn{{border:1px solid var(--gold);background:transparent;color:var(--gold);padding:8px 11px;border-radius:8px;font-weight:900}}
+@media(max-width:820px){{
+ .how{{grid-template-columns:1fr 1fr}} .caseHeader,.gameGrid{{grid-template-columns:1fr}} .summaryGrid{{grid-template-columns:1fr}} .traitBank,.sortColumns{{grid-template-columns:1fr}}
+ .portrait{{width:105px;height:105px}} .stageBar{{grid-template-columns:1fr 1fr}}
+}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand">The Industrialist Files — Academic Version</div>
+  <div class="hud">
+    <button class="helpBtn" id="termsBtn">📘 KEY TERMS</button>
+    <div class="hudChip">CASE <strong id="hudCase">—</strong></div>
+    <div class="hudChip">POINTS <strong id="points">0</strong></div>
+  </div>
+</header>
+
+<section id="start" class="screen active hero">
+ <div class="heroInner">
+  <div class="kicker">Gilded Age Case Investigation</div>
+  <h1>Robber Baron <em>or Captain of Industry?</em></h1>
+  <p class="lede">Learn the two labels. Then open evidence files on Vanderbilt, Rockefeller, Carnegie, and Morgan. Your job is to decide what the evidence shows — and be ready to change your mind when new evidence appears.</p>
+  <button id="beginBtn" class="primary">BEGIN INVESTIGATOR TRAINING →</button>
+  <div class="how">
+   <div><strong>🔓 Open</strong>Reveal the evidence.</div>
+   <div><strong>⚖️ Decide</strong>Which side does it support?</div>
+   <div><strong>⭐ Rate</strong>How important is it?</div>
+   <div><strong>🔄 Reconsider</strong>New evidence may change your mind.</div>
+  </div>
+ </div>
+</section>
+
+<section id="training" class="screen">
+ <div class="trainingHero">
+  <div class="kicker">Investigator Training</div>
+  <h2>Know the Two Labels</h2>
+  <p class="trainingLead">Sort each clue as <strong>Robber Baron</strong> or <strong>Captain of Industry</strong>. Get all 10 correct to unlock Case File #1.</p>
+ </div>
+ <div class="trainingStatus">
+  <div><span class="statusBig" id="trainingPlaced">0/10</span><span class="statusSmall">PLACED</span></div>
+  <div><span class="statusBig" id="trainingCorrect">—</span><span class="statusSmall">CORRECT</span></div>
+  <div><span class="statusBig" id="trainingTries">0</span><span class="statusSmall">CHECKS</span></div>
+ </div>
+ <div class="sortInstructions"><strong>How to play:</strong> Pick a clue. Then place it under <strong>Robber Baron</strong> or <strong>Captain of Industry</strong>. You can change answers before you check.</div>
+ <div id="traitBank" class="traitBank"></div>
+ <div class="sortColumns">
+  <section class="sortColumn robberColumn">
+   <div class="sortIcon">🎩💰</div><h3>ROBBER BARON</h3>
+   <p>Uses money and power in unfair or harmful ways.</p>
+   <button type="button" class="dropChoice robberDrop" data-sort-target="robber">PLACE SELECTED HERE</button>
+   <div id="robberPile" class="sortedPile"></div>
+  </section>
+  <section class="sortColumn captainColumn">
+   <div class="sortIcon">🏭📈</div><h3>CAPTAIN OF INDUSTRY</h3>
+   <p>Builds businesses that create jobs, lower costs, or help the country grow.</p>
+   <button type="button" class="dropChoice captainDrop" data-sort-target="captain">PLACE SELECTED HERE</button>
+   <div id="captainPile" class="sortedPile"></div>
+  </section>
+ </div>
+ <div class="trainingActions">
+  <button id="resetTrainingBtn" type="button" class="secondary">Reset Sort</button>
+  <button id="checkTrainingBtn" type="button" class="primary">CHECK MY SORT →</button>
+ </div>
+ <div id="trainingFeedback" class="trainingFeedback" aria-live="polite"></div>
+ <div id="unlockPanel" class="unlockPanel" hidden>
+  <div class="unlockSeal">✓</div>
+  <div><div class="kicker">Training Complete</div><h3>INVESTIGATOR BADGE EARNED</h3>
+  <p>The real cases are harder because the same person may have evidence on <strong>both</strong> sides.</p>
+  <button id="unlockCaseBtn" type="button" class="primary">🔓 UNLOCK CASE FILE #1 — VANDERBILT →</button></div>
+ </div>
+</section>
+
+<section id="case" class="screen">
+ <div class="caseHeader">
+  <div class="identity"><img id="portrait" class="portrait" alt=""><div><div id="caseNum" class="caseNum"></div><h2 id="name"></h2><div id="industry" class="industry"></div></div></div>
+  <div id="question" class="question"></div>
+ </div>
+ <div id="stages" class="stageBar"></div>
+ <div class="gameGrid">
+  <div class="panel"><div id="leftLabel" class="sectionLabel">Evidence Files</div><div id="evidenceArea" class="evidenceGrid"></div></div>
+  <aside class="panel">
+   <div class="sectionLabel">Your Case</div>
+   <div class="meterLabels"><span>Robber Baron</span><span>Captain of Industry</span></div>
+   <div class="meter"><div id="needle" class="needle" style="left:50%"></div></div>
+   <div id="evidenceScore" class="scoreText">Open and evaluate the evidence.</div>
+   <div id="judgmentArea"></div>
+   <div id="feedback" class="feedback" aria-live="polite"></div>
+  </aside>
+ </div>
+ <div class="bottomNav"><button id="backBtn" class="secondary">← Previous Case</button><button id="caseActionBtn" class="primary">Continue</button></div>
+</section>
+
+<section id="results" class="screen">
+ <div class="kicker" style="text-align:center">Investigation Complete</div>
+ <div class="caseClosed">CASE FILES CLOSED</div>
+ <div id="summaryGrid" class="summaryGrid"></div>
+ <div class="finalCallout"><strong>FINAL CLAIM — RECORD ON YOUR WORKSHEET:</strong><br>
+ Were the major industrialists of the Gilded Age mostly robber barons, mostly captains of industry, or does it depend on the person? Use at least <strong>two industrialists</strong> and specific evidence.</div>
+ <div class="bottomNav"><button id="restartBtn" class="secondary">Restart Investigation</button><button id="printBtn" class="primary">Print / Save Results</button></div>
+</section>
+</div>
+
+<div id="termsModal" class="modal">
+ <div class="modalCard">
+  <div class="modalTop"><h3>📘 Key Terms — Visual Help Sheet</h3><button id="closeTerms" class="closeBtn">CLOSE ✕</button></div>
+  <img src="{terms_sheet}" alt="Visual Gilded Age key terms sheet including corporation, horizontal integration, vertical integration, monopoly, philanthropy, strike, union, rebate, tariff, and laissez-faire">
+ </div>
+</div>
+
+<script>
+const portraitImages = {portrait_object};
+
+const people = [
+ {{
+  name:"Cornelius Vanderbilt", industry:"Railroads & Shipping",
+  question:"Did Vanderbilt help connect the country — or gain too much control over transportation?",
+  evidence:[
+   {{title:"A National Railroad Network", image:"{ev['train']}", text:"<strong>Vanderbilt bought separate railroad lines and connected them.</strong><br><br>Passengers needed fewer transfers. Businesses could ship goods farther and faster. His railroads helped connect regional markets into a growing <strong>national market</strong>.", term:"National Market", def:"A countrywide system where businesses buy and sell goods across many regions."}},
+   {{title:"Control of New York Routes", image:"{ev['train']}", text:"Vanderbilt controlled important railroad lines into <strong>New York City</strong>, the nation's largest commercial center.<br><br>Many businesses depended on his railroads. That gave him great power over transportation and shipping prices.", term:"Market Power", def:"When a business has enough control to strongly influence prices or choices."}},
+   {{title:"Rate Wars", image:"{ev['train']}", text:"Vanderbilt sometimes cut fares extremely low to take customers from rivals.<br><br>Weaker companies struggled to survive. Vanderbilt could then <strong>buy them, force a deal, or push them out</strong>.", term:"Rate War", def:"When competing companies keep cutting prices to steal customers from one another."}},
+   {{title:"NEW EVIDENCE: Vanderbilt University", image:"{ev['giving']}", text:"In <strong>1873</strong>, Vanderbilt gave <strong>$1 million</strong> to help create Vanderbilt University.<br><br>It was an enormous donation at the time and used part of his private fortune for education.", term:"Philanthropy", def:"Giving large amounts of money to help society."}}
+  ]
+ }},
+ {{
+  name:"John D. Rockefeller", industry:"Oil — Standard Oil",
+  question:"Did Rockefeller make oil cheaper and more efficient — or build a monopoly by crushing competition?",
+  evidence:[
+   {{title:"Cheaper Kerosene", image:"{ev['prices']}", text:"Before electric lights, many families used <strong>kerosene lamps</strong>.<br><br>Standard Oil improved refining, wasted less oil, and moved huge amounts efficiently. Prices fell and customers got a more reliable product.", term:"Efficiency", def:"Producing or moving goods with less waste, time, or cost."}},
+   {{title:"Buying the Competition", image:"{ev['plant']}", text:"Rockefeller bought many competing oil refineries and pressured others to sell.<br><br>Standard Oil eventually controlled <strong>most U.S. oil refining</strong>.", term:"Horizontal Integration", def:"Buying or controlling competing companies that do the same kind of business."}},
+   {{title:"Secret Railroad Rebates", image:"{ev['train']}", text:"Railroads gave Standard Oil special shipping discounts called <strong>rebates</strong> because it shipped so much oil.<br><br>Smaller refiners usually paid more. Rockefeller could ship oil for less, lowering his costs and making competition harder.", term:"Rebate", def:"A special discount or refund on a price."}},
+   {{title:"NEW EVIDENCE: Rockefeller Gives Away Millions", image:"{ev['giving']}", text:"Rockefeller later gave away <strong>hundreds of millions of dollars</strong>.<br><br>His money supported universities, medical research, public-health programs, and major charities.", term:"Philanthropy", def:"Giving large amounts of money to help society."}}
+  ]
+ }},
+ {{
+  name:"Andrew Carnegie", industry:"Steel — Carnegie Steel",
+  question:"Did Carnegie's steel and giving help America enough to outweigh the treatment of workers?",
+  evidence:[
+   {{title:"Cheaper Steel Builds America", image:"{ev['plant']}", text:"Carnegie invested in newer steel-making technology and controlled many steps of production.<br><br>Cheaper steel helped build <strong>railroads, bridges, factories, and skyscrapers</strong>.", term:"Vertical Integration", def:"Controlling several steps needed to make and sell a product — from raw materials to the finished product."}},
+   {{title:"The Gospel of Wealth", image:"{ev['giving']}", text:"Carnegie argued that very rich people had a responsibility to <strong>use their money to improve society</strong>.<br><br>He believed they should fund useful public institutions instead of simply leaving giant fortunes to their children.", term:"Gospel of Wealth", def:"Carnegie's belief that the rich should use their fortunes to benefit society."}},
+   {{title:"Libraries and Education", image:"{ev['giving']}", text:"Carnegie paid for more than <strong>2,500 libraries</strong> around the world, including many in the United States.<br><br>He also gave money to universities, scientific research, and cultural institutions.", term:"Philanthropy", def:"Giving large amounts of money to help society."}},
+   {{title:"NEW EVIDENCE: The Homestead Strike", image:"{ev['workers']}", text:"In <strong>1892</strong>, workers at Carnegie's Homestead steel plant fought wage cuts and a <strong>lockout</strong>.<br><br>Manager Henry Clay Frick brought in armed Pinkerton guards. A violent battle followed, people were killed, and the <strong>union was defeated</strong>. Carnegie was away, but it happened inside his company.", term:"Strike / Union", def:"A strike is when workers stop working to demand change. A union is a group of workers who join together to protect their interests."}}
+  ]
+ }},
+ {{
+  name:"J. P. Morgan", industry:"Finance & Big Business",
+  question:"Did Morgan bring order to American business — or give one private banker too much power?",
+  evidence:[
+   {{title:"Fixing Failing Railroads", image:"{ev['train']}", text:"Many railroads expanded too quickly and fell deep into debt.<br><br>Morgan reorganized struggling companies, replaced managers, and pushed competing railroads to cooperate. Supporters said he brought <strong>order to an unstable industry</strong>.", term:"Reorganization", def:"Changing how a struggling company is managed so it can survive and work better."}},
+   {{title:"Creating U.S. Steel", image:"{ev['plant']}", text:"In <strong>1901</strong>, Morgan bought Carnegie Steel and combined it with other companies to create <strong>U.S. Steel</strong>.<br><br>It became the first <strong>billion-dollar corporation</strong> in American history.", term:"Corporation", def:"A large business owned by investors who buy shares of stock."}},
+   {{title:"Fear of a Money Trust", image:"{ev['oil']}", text:"Morgan's banking network influenced <strong>railroads, steel, banks, and other major industries</strong>.<br><br>Critics worried that a small group of private bankers had too much power over the economy even though voters had never elected them.", term:"Concentration of Power", def:"When control over a large part of the economy is held by only a few people or companies."}},
+   {{title:"NEW EVIDENCE: Panic of 1907", image:"{ev['giving']}", text:"During a serious financial crisis in <strong>1907</strong>, banks and businesses were failing.<br><br>Morgan gathered powerful bankers and organized emergency loans that helped stop the panic from spreading. It showed both his <strong>usefulness</strong> and his enormous private power.", term:"Financial Panic", def:"A crisis when people lose confidence in banks and businesses and the economy can quickly weaken."}}
+  ]
+ }}
+];
+
+let current=0, points=0;
+let state=people.map(()=>({{opened:[false,false,false,false],direction:[null,null,null,null],weight:[null,null,null,null],stage:"investigate",first:50,final:50}}));
+const $=id=>document.getElementById(id);
+const screens={{start:$("start"),training:$("training"),case:$("case"),results:$("results")}};
+function show(which){{Object.values(screens).forEach(s=>s.classList.remove("active"));screens[which].classList.add("active")}}
+function addPoints(n){{points+=n;$("points").textContent=points}}
+
+const trainingTraits = [
+ {{text:"Creates jobs and helps an important industry grow",answer:"captain"}},
+ {{text:"Uses secret deals to make it harder for competitors",answer:"robber"}},
+ {{text:"Builds a monopoly so smaller companies can barely compete",answer:"robber"}},
+ {{text:"Uses new technology to make more goods at a lower cost",answer:"captain"}},
+ {{text:"Gives large amounts of money to schools, libraries, or research",answer:"captain"}},
+ {{text:"Uses money and influence to gain too much power",answer:"robber"}},
+ {{text:"Makes important goods or services cheaper for customers",answer:"captain"}},
+ {{text:"Allows unsafe conditions or very low wages to increase profits",answer:"robber"}},
+ {{text:"Builds railroads, factories, and businesses that grow the economy",answer:"captain"}},
+ {{text:"Uses unfair tactics to push competitors out of business",answer:"robber"}}
+];
+let trainingAssignments=Array(trainingTraits.length).fill(null),selectedTrait=null,trainingChecks=0,trainingCompleted=false,showTrainingCorrections=false;
+
+function renderTraining(){{
+ const bank=$("traitBank"); bank.innerHTML="";
+ trainingTraits.forEach((trait,i)=>{{
+  const btn=document.createElement("button");btn.type="button";
+  btn.className="traitCard"+(selectedTrait===i?" selected":"")+(trainingAssignments[i]?" placed":"");
+  btn.innerHTML=`<span class="traitNum">${{i+1}}</span>${{trait.text}}`;
+  btn.disabled=!!trainingAssignments[i]||trainingCompleted;
+  btn.addEventListener("click",()=>{{selectedTrait=i;renderTraining()}});
+  bank.appendChild(btn);
+ }});
+ const renderPile=(target,id)=>{{
+  const pile=$(id);pile.innerHTML="";
+  trainingAssignments.forEach((assigned,i)=>{{
+   if(assigned!==target)return;
+   const item=document.createElement("div");
+   item.className="sortedItem"+(showTrainingCorrections?(trainingTraits[i].answer===target?" correct":" wrong"):"");
+   item.innerHTML=`<span>${{trainingTraits[i].text}}</span><button type="button">↩</button>`;
+   item.querySelector("button").addEventListener("click",()=>{{if(trainingCompleted)return;trainingAssignments[i]=null;showTrainingCorrections=false;renderTraining()}});
+   pile.appendChild(item);
+  }});
+ }};
+ renderPile("robber","robberPile");renderPile("captain","captainPile");
+ const placed=trainingAssignments.filter(Boolean).length;
+ const correct=trainingAssignments.reduce((n,a,i)=>n+(a===trainingTraits[i].answer?1:0),0);
+ $("trainingPlaced").textContent=`${{placed}}/10`;
+ $("trainingCorrect").textContent=showTrainingCorrections||trainingCompleted?correct:"—";
+ $("trainingTries").textContent=trainingChecks;
+ $("checkTrainingBtn").disabled=placed<10||trainingCompleted;
+ $("checkTrainingBtn").style.opacity=$("checkTrainingBtn").disabled?".45":"1";
+ $("resetTrainingBtn").disabled=trainingCompleted;
+ document.querySelectorAll("[data-sort-target]").forEach(btn=>{{btn.disabled=selectedTrait===null||trainingCompleted;btn.style.opacity=btn.disabled?".45":"1"}});
+}}
+document.querySelectorAll("[data-sort-target]").forEach(btn=>btn.addEventListener("click",()=>{{if(selectedTrait===null||trainingCompleted)return;trainingAssignments[selectedTrait]=btn.dataset.sortTarget;selectedTrait=null;showTrainingCorrections=false;$("trainingFeedback").textContent="";renderTraining()}}));
+$("resetTrainingBtn").addEventListener("click",()=>{{if(trainingCompleted)return;trainingAssignments=Array(trainingTraits.length).fill(null);selectedTrait=null;trainingChecks=0;showTrainingCorrections=false;$("trainingFeedback").textContent="";renderTraining()}});
+$("checkTrainingBtn").addEventListener("click",()=>{{
+ if(trainingAssignments.some(a=>!a)||trainingCompleted)return;
+ trainingChecks++;showTrainingCorrections=true;
+ const correct=trainingAssignments.reduce((n,a,i)=>n+(a===trainingTraits[i].answer?1:0),0);
+ if(correct===10){{trainingCompleted=true;addPoints(25);$("trainingFeedback").textContent="✓ All 10 correct. Case File #1 unlocked!";$("unlockPanel").hidden=false}}
+ else $("trainingFeedback").textContent=`${{correct}}/10 correct. Red outlines need another look.`;
+ renderTraining();
+}});
+$("beginBtn").addEventListener("click",()=>{{show("training");renderTraining()}});
+$("unlockCaseBtn").addEventListener("click",()=>{{show("case");render();window.scrollTo(0,0)}});
+
+function renderStages(){{
+ const s=state[current];
+ const defs=[["investigate","1. Investigate"],["first","2. First Judgment"],["new","3. New Evidence"],["final","4. Final Judgment"]];
+ const order=defs.map(x=>x[0]),now=order.indexOf(s.stage);
+ $("stages").innerHTML=defs.map((d,i)=>`<span class="stage ${{i<now?"done":i===now?"now":""}}">${{d[1]}}</span>`).join("");
+}}
+
+function evidenceCard(i,twist=false){{
+ const p=people[current],s=state[current],e=p.evidence[i],opened=s.opened[i];
+ if(!opened)return `<article class="envelope locked"><div class="stamp">${{twist?"NEW EVIDENCE":"SEALED"}}</div>
+ <h3>${{twist?"A final file has arrived":"Evidence File "+(i+1)}}</h3>
+ <p>${{twist?"Your first judgment is locked. Open this new file and decide if it changes your mind.":"You do not know which side this evidence will support until you open it."}}</p>
+ <button class="openBtn" data-open="${{i}}">🔓 OPEN EVIDENCE</button></article>`;
+ return `<article class="envelope"><div class="stamp">${{twist?"NEW FILE":"EVIDENCE "+(i+1)}}</div>
+ <h3>${{e.title}}</h3><img class="evidenceVisual" src="${{e.image}}" alt="">
+ <p>${{e.text}}</p><div class="termBox"><strong>KEY TERM — ${{e.term}}</strong>${{e.def}}</div>
+ <div class="smallLabel">Which side does this support?</div>
+ <div class="classifyRow">
+  <button class="choiceBtn robber ${{s.direction[i]==="robber"?"selected":""}}" data-dir="${{i}}:robber">← Robber Baron</button>
+  <button class="choiceBtn mixed ${{s.direction[i]==="mixed"?"selected":""}}" data-dir="${{i}}:mixed">Mixed / Both</button>
+  <button class="choiceBtn captain ${{s.direction[i]==="captain"?"selected":""}}" data-dir="${{i}}:captain">Captain of Industry →</button>
+ </div>
+ <div class="smallLabel">How important is this evidence?</div>
+ <div class="weightRow">
+  <button class="choiceBtn weightBtn ${{s.weight[i]===1?"selected":""}}" data-weight="${{i}}:1">★ Small</button>
+  <button class="choiceBtn weightBtn ${{s.weight[i]===2?"selected":""}}" data-weight="${{i}}:2">★★ Important</button>
+  <button class="choiceBtn weightBtn ${{s.weight[i]===3?"selected":""}}" data-weight="${{i}}:3">★★★ Very Important</button>
+ </div></article>`;
+}}
+function bindEvidenceButtons(){{
+ document.querySelectorAll("[data-open]").forEach(btn=>btn.addEventListener("click",()=>{{const i=Number(btn.dataset.open);if(!state[current].opened[i]){{state[current].opened[i]=true;addPoints(10)}}render()}}));
+ document.querySelectorAll("[data-dir]").forEach(btn=>btn.addEventListener("click",()=>{{const [i,d]=btn.dataset.dir.split(":");const idx=Number(i);if(!state[current].direction[idx])addPoints(5);state[current].direction[idx]=d;render()}}));
+ document.querySelectorAll("[data-weight]").forEach(btn=>btn.addEventListener("click",()=>{{const [i,w]=btn.dataset.weight.split(":");const idx=Number(i);if(!state[current].weight[idx])addPoints(5);state[current].weight[idx]=Number(w);render()}}));
+}}
+function readyFirstThree(){{const s=state[current];return [0,1,2].every(i=>s.opened[i]&&s.direction[i]&&s.weight[i])}}
+function readyTwist(){{const s=state[current];return s.opened[3]&&s.direction[3]&&s.weight[3]}}
+function evidenceBalance(){{
+ const s=state[current];let total=0,max=0;
+ s.direction.forEach((d,i)=>{{if(!d||!s.weight[i])return;const val=d==="robber"?-1:d==="captain"?1:0;total+=val*s.weight[i];max+=s.weight[i]}});
+ if(!max)return 50;return Math.max(0,Math.min(100,50+(total/max)*45));
+}}
+function sliderLabel(v){{if(v<=20)return"Strong Robber Baron";if(v<=40)return"Leans Robber Baron";if(v<60)return"Mixed / Both";if(v<80)return"Leans Captain of Industry";return"Strong Captain of Industry"}}
+
+function renderEvidence(){{
+ const s=state[current];
+ if(s.stage==="investigate"||s.stage==="first"){{$("leftLabel").textContent="Evidence Files";$("evidenceArea").innerHTML=[0,1,2].map(i=>evidenceCard(i,false)).join("")}}
+ else{{$("leftLabel").textContent="New Evidence";$("evidenceArea").innerHTML=evidenceCard(3,true)}}
+ bindEvidenceButtons();
+}}
+function judgmentHTML(){{
+ const s=state[current];
+ if(s.stage==="investigate")return `<div class="worksheet"><strong>YOUR JOB:</strong><p>1. Open all 3 evidence files.</p><p>2. Choose which side each piece supports.</p><p>3. Decide how important each piece is.</p></div>`;
+ if(s.stage==="first")return `<div class="sliderBox"><div class="sectionLabel">Your First Judgment</div>
+ <div class="meterLabels"><span>Robber Baron</span><span>Captain of Industry</span></div>
+ <input id="judgmentSlider" type="range" min="0" max="100" value="${{s.first}}">
+ <div id="judgmentReadout" class="sliderValue">${{s.first}} — ${{sliderLabel(s.first)}}</div>
+ <button id="lockFirst" class="primary caseAction">LOCK MY FIRST JUDGMENT 🔒</button></div>
+ <div class="worksheet"><strong>Don't record your final answer yet.</strong><p>One more piece of evidence is coming.</p></div>`;
+ if(s.stage==="new")return `<div class="firstLocked"><strong>🔒 Your first judgment:</strong><br>${{s.first}} — ${{sliderLabel(s.first)}}</div>
+ <div class="worksheet"><strong>NEW QUESTION:</strong><p>Does this new evidence change your mind?</p></div>`;
+ const move=s.final-s.first;
+ return `<div class="sliderBox"><div class="sectionLabel">Final Judgment</div>
+ <div class="meterLabels"><span>Robber Baron</span><span>Captain of Industry</span></div>
+ <input id="judgmentSlider" type="range" min="0" max="100" value="${{s.final}}">
+ <div id="judgmentReadout" class="sliderValue">${{s.final}} — ${{sliderLabel(s.final)}}</div>
+ <div id="movement" class="movement">${{move===0?"You stayed in the same place.":`You moved ${{Math.abs(move)}} points ${{move>0?"toward Captain of Industry":"toward Robber Baron"}}.`}}</div></div>
+ <div class="worksheet"><strong>RECORD ON YOUR WORKSHEET:</strong>
+ <p>1. Final score: <strong>${{s.final}}</strong></p><p>2. Label: <strong>${{sliderLabel(s.final)}}</strong></p>
+ <p>3. Your <strong>two most important pieces of evidence</strong>.</p><p>4. Did the new evidence change your mind? Why or why not?</p></div>`;
+}}
+function renderJudgment(){{
+ $("judgmentArea").innerHTML=judgmentHTML();
+ const slider=$("judgmentSlider");
+ if(slider)slider.addEventListener("input",e=>{{const v=Number(e.target.value);if(state[current].stage==="first")state[current].first=v;else state[current].final=v;$("judgmentReadout").textContent=`${{v}} — ${{sliderLabel(v)}}`;if(state[current].stage==="final"){{const move=v-state[current].first;$("movement").textContent=move===0?"You stayed in the same place.":`You moved ${{Math.abs(move)}} points ${{move>0?"toward Captain of Industry":"toward Robber Baron"}}.`}}}});
+ const lock=$("lockFirst");
+ if(lock)lock.addEventListener("click",()=>{{state[current].final=state[current].first;state[current].stage="new";addPoints(15);render()}});
+}}
+function renderAction(){{
+ const s=state[current],btn=$("caseActionBtn");$("backBtn").style.visibility=current===0?"hidden":"visible";
+ if(s.stage==="investigate"){{btn.textContent="MAKE MY FIRST JUDGMENT →";btn.disabled=!readyFirstThree()}}
+ else if(s.stage==="first"){{btn.textContent="LOCK YOUR FIRST JUDGMENT ABOVE";btn.disabled=true}}
+ else if(s.stage==="new"){{btn.textContent="MAKE MY FINAL JUDGMENT →";btn.disabled=!readyTwist()}}
+ else{{btn.textContent=current===people.length-1?"CLOSE FINAL CASE →":"CLOSE CASE & CONTINUE →";btn.disabled=false}}
+ btn.style.opacity=btn.disabled?".45":"1";
+}}
+function render(){{
+ const p=people[current],s=state[current];
+ $("hudCase").textContent=`${{current+1}}/4`;$("points").textContent=points;$("caseNum").textContent=`Case File ${{current+1}} of 4`;
+ $("name").textContent=p.name;$("industry").textContent=p.industry;$("question").textContent=p.question;
+ $("portrait").src=portraitImages[p.name]||p.evidence[0].image;$("portrait").alt=`Cartoon portrait of ${{p.name}}`;
+ $("feedback").textContent="";renderStages();renderEvidence();renderJudgment();renderAction();
+ const balance=evidenceBalance();$("needle").style.left=balance+"%";
+ const classified=s.direction.filter(Boolean).length;
+ $("evidenceScore").textContent=classified?`Your evidence currently leans ${{Math.round(balance)}} / 100. This is not the answer — it only reflects how YOU rated the evidence.`:"Open and evaluate the evidence.";
+}}
+$("caseActionBtn").addEventListener("click",()=>{{
+ const s=state[current];
+ if(s.stage==="investigate"){{if(!readyFirstThree())return;s.stage="first";addPoints(10);render();return}}
+ if(s.stage==="new"){{if(!readyTwist())return;s.stage="final";addPoints(10);render();return}}
+ if(s.stage==="final"){{addPoints(20);if(current<people.length-1){{current++;render();window.scrollTo(0,0)}}else{{renderResults();show("results");window.scrollTo(0,0)}}}}
+}});
+$("backBtn").addEventListener("click",()=>{{if(current>0){{current--;render();window.scrollTo(0,0)}}}});
+function renderResults(){{
+ $("hudCase").textContent="4/4";const grid=$("summaryGrid");grid.innerHTML="";
+ people.forEach((p,i)=>{{const s=state[i],move=s.final-s.first;const div=document.createElement("article");div.className="summary";
+ div.innerHTML=`<img src="${{portraitImages[p.name]||p.evidence[0].image}}" alt=""><span class="badge">${{s.final}} — ${{sliderLabel(s.final)}}</span>
+ <h3>${{p.name}}</h3><div class="industry">${{p.industry}}</div><div class="meter" style="margin-top:13px"><span style="position:absolute;left:${{s.final}}%;top:50%;width:15px;height:15px;border-radius:50%;background:white;transform:translate(-50%,-50%)"></span></div>
+ <div class="scoreText">First: ${{s.first}} → Final: ${{s.final}}<br>${{move===0?"New evidence did not change your score.":`New evidence moved you ${{Math.abs(move)}} points ${{move>0?"toward Captain":"toward Robber"}}.`}}</div>`;
+ grid.appendChild(div)}});
+}}
+$("restartBtn").addEventListener("click",()=>{{current=0;points=0;state=people.map(()=>({{opened:[false,false,false,false],direction:[null,null,null,null],weight:[null,null,null,null],stage:"investigate",first:50,final:50}}));trainingAssignments=Array(trainingTraits.length).fill(null);selectedTrait=null;trainingChecks=0;trainingCompleted=false;showTrainingCorrections=false;$("unlockPanel").hidden=true;$("points").textContent="0";$("hudCase").textContent="—";show("start");window.scrollTo(0,0)}});
+$("printBtn").addEventListener("click",()=>window.print());
+
+$("termsBtn").addEventListener("click",()=>$("termsModal").classList.add("open"));
+$("closeTerms").addEventListener("click",()=>$("termsModal").classList.remove("open"));
+$("termsModal").addEventListener("click",e=>{{if(e.target===$("termsModal"))$("termsModal").classList.remove("open")}});
+
+</script>
+</body>
+</html>"""
+
+with open(out, "w", encoding="utf-8") as f:
+    f.write(html)
+
+print(f"Created {out}")
+print(f"Size: {os.path.getsize(out)/1024/1024:.2f} MB")
